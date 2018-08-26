@@ -164,9 +164,9 @@ void setup() {
   // Repeatedly asking nodes to send data
   CONTROL Command = {"get","all",0};
   bus.send_repeatedly(NODE_ID_OUTSIDE,  (const char*)&Command, sizeof(CONTROL), Node_Request); // seconds * 1000000
-  delay(TS_RESPONSE_TIME_OUT/1000 * 5); // 2 times more then PJON responce time out
+  delay(TS_RESPONSE_TIME_OUT/1000 * 5); // to avoid inteference with response from the previous node
   bus.send_repeatedly(NODE_ID_BASEMENT, (const char*)&Command, sizeof(CONTROL), Node_Request); // seconds * 1000000
-  delay(TS_RESPONSE_TIME_OUT/1000 * 5); // 2 times more then PJON responce time out
+  delay(TS_RESPONSE_TIME_OUT/1000 * 5); 
 
   Timer_Check_Vent = millis(); // to check if its is time to calc ventilation process
 };
@@ -317,10 +317,16 @@ bool run_ventilation() {
     Serial.println("Outside or basement temperature has wrong value (-99.9).");
   }
 
-  if(rel2abs_hum(SENS_OUTSIDE.humidity, SENS_OUTSIDE.temperature2) -
-     rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature2)
-     >= HUM_DELTA) {
-    Serial.println("Outside abs. hum > basement abs. hum.");
+//  if(rel2abs_hum(SENS_OUTSIDE.humidity, SENS_OUTSIDE.temperature2) -
+//     rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature2)
+//     >= HUM_DELTA) {
+//    Serial.println("Outside abs. hum > basement abs. hum.");
+//    run = false;
+//  }
+
+  if(rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature2) + HUM_DELTA >
+     rel2abs_hum(SENS_OUTSIDE.humidity, SENS_OUTSIDE.temperature2)) {
+    Serial.println("Outside abs. hum + HUM_DELTA > basement abs. hum.");
     run = false;
   }
 

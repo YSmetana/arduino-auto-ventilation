@@ -113,22 +113,22 @@ unsigned long TimerB = millis();
 
 void setup(void) {
   Serial.begin(9600);
-  
-  u8g2.begin();  
+
+  u8g2.begin();
   u8g2.setColorIndex(1);
   u8g2.setFontMode(0);		// enable transparent mode, which is faster
 }
 
-void loop() {  
-  u8g2.clearBuffer(); 
+void loop() {
+  u8g2.clearBuffer();
   blink_fan();
   (*pages[current_page])();
-  u8g2.sendBuffer();      
-  
+  u8g2.sendBuffer();
+
   if (millis()-TimerA >= page_duration[current_page]) {
-    current_page++;  
+    current_page++;
     if (current_page > pages_count-1)
-      current_page=0;    
+      current_page=0;
 
     TimerA = millis();
   }
@@ -137,69 +137,69 @@ void loop() {
 void pageTemperature(){
   char outside_temp[] = "+27.8";
   char inside_temp[] = "-15.2";
-    
+
   u8g2.drawXBMP( 0, 16, temperature_width, temperature_height, temperature_bits);
 
   u8g2.setFont(u8g2_font_logisoso24_tn);
-  u8g2.drawStr( right_x(outside_temp,32), 26, outside_temp); 
-  u8g2.drawStr( right_x(inside_temp,32), 62, inside_temp); 
-  
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);  
-  u8g2.drawUTF8(104, 36, "°C");  
-  
-  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);  
-  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);  
+  u8g2.drawStr( right_x(outside_temp,32), 26, outside_temp);
+  u8g2.drawStr( right_x(inside_temp,32), 62, inside_temp);
+
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.drawUTF8(104, 36, "°C");
+
+  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
+  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
   return 0;
 }
-void pageHumidity() { 
+void pageHumidity() {
   char outside_hum[] = "72";
   char inside_hum[] = "45";
 
   u8g2.drawXBMP( 0, 16, humidity_32_width, humidity_32_height, humidity_32_bits);
-  
+
   u8g2.setFont(u8g2_font_logisoso24_tr);
-  u8g2.drawStr(right_x(outside_hum, 32), 26, outside_hum); 
-  u8g2.drawStr(right_x(inside_hum, 32), 64, inside_hum); 
-  
-  
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);  
-  u8g2.drawUTF8(104, 36, "%");  
-  
-  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);  
-  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);    
+  u8g2.drawStr(right_x(outside_hum, 32), 26, outside_hum);
+  u8g2.drawStr(right_x(inside_hum, 32), 64, inside_hum);
+
+
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.drawUTF8(104, 36, "%");
+
+  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
+  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
   return 0;
 }
 
-void pagePressure() {  
+void pagePressure() {
   char outside_press[] = "760";
-  char inside_press[] = "765";  
+  char inside_press[] = "765";
 
   u8g2.drawXBMP( 0, 16, pressure_32_width, pressure_32_height, pressure_32_bits);
-  
-  u8g2.setFont(u8g2_font_logisoso24_tn);  
 
-  u8g2.drawStr(right_x(outside_press, 32), 24, outside_press); 
-  u8g2.drawStr(right_x(inside_press, 32), 64, inside_press); 
+  u8g2.setFont(u8g2_font_logisoso24_tn);
 
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);  
-  u8g2.drawUTF8(104, 28, "mm"); 
-  u8g2.drawUTF8(104, 44, "Hg"); 
-  
-  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);  
-  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);    
+  u8g2.drawStr(right_x(outside_press, 32), 24, outside_press);
+  u8g2.drawStr(right_x(inside_press, 32), 64, inside_press);
+
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.drawUTF8(104, 28, "mm");
+  u8g2.drawUTF8(104, 44, "Hg");
+
+  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
+  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
   return 0;
 }
 
 void pageTimeDay() {
   char time_now[] = "08:48";
   char date_now[] = "22.07.18";
-  
-  u8g2.setFont(u8g2_font_inb30_mn);  
-  u8g2.drawStr( center_x(time_now), 40, time_now); 
-  
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);  
-  u8g2.drawUTF8(center_x(date_now), 64, date_now);  
-  return 0;  
+
+  u8g2.setFont(u8g2_font_inb30_mn);
+  u8g2.drawStr( center_x(time_now), 40, time_now);
+
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.drawUTF8(center_x(date_now), 64, date_now);
+  return 0;
 }
 
 unsigned int center_x(char* message, int margin_left=0, int margin_right=0) {
@@ -216,16 +216,16 @@ unsigned int right_x(char* message, int margin_right=0) {
 void blink_fan() {
   /*
    * Blink fan icon.
-   */   
+   */
   if (millis()-TimerB < BLINK_DUR) {
     u8g2.drawXBMP( 0, 0, fan_8_width, fan_8_height, fan_8_bits);
   }
   if (millis()-TimerB >= BLINK_DUR && millis()-TimerB < BLINK_DUR*2) {
-    //u8g2.drawXBMP( 0, 0, fan_8_width, fan_8_height, fan_8_bits);        
-  }      
-  
+    //u8g2.drawXBMP( 0, 0, fan_8_width, fan_8_height, fan_8_bits);
+  }
+
   if (millis()-TimerB >= BLINK_DUR*2) {
-    TimerB = millis();  
+    TimerB = millis();
   }
   return 0;
-}      
+}

@@ -15,12 +15,12 @@ bool Fan_On = false;
  * DS18B20 temperature sensor
  * Datasheet: https://cdn.sparkfun.com/datasheets/Sensors/Temp/DS18B20.pdf
  * Tutorial:  https://create.arduino.cc/projecthub/TheGadgetBoy/ds18b20-digital-temperature-sensor-and-arduino-9cc806
- *            http://mypractic.ru/ds18b20-datchik-temperatury-s-interfejsom-1-wire-opisanie-na-russkom-yazyke.html#22z  
- */ 
-#include <OneWire.h> 
-#define ONE_WIRE_BUS 2 
+ *            http://mypractic.ru/ds18b20-datchik-temperatury-s-interfejsom-1-wire-opisanie-na-russkom-yazyke.html#22z
+ */
+#include <OneWire.h>
+#define ONE_WIRE_BUS 2
 #include <DallasTemperature.h>  // https://github.com/milesburton/Arduino-Temperature-Control-Library
-OneWire oneWire(ONE_WIRE_BUS); 
+OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature DS18B20(&oneWire);
 #define DS18B20_PRECISION 12    // 9-12. 12 = 0,0625 (1/16) °C
 
@@ -79,18 +79,18 @@ void log(char message[64], bool new_line = true) {
 
 void setup() {
   pinMode(FAN_CONTROL_PIN, OUTPUT);
-  
+
   // Initialize LED 13 to be off
   pinMode(13, OUTPUT);
   digitalWrite(13, LOW);
-  
+
   // Serial port
   Serial.begin(9600);
   Serial.println("Start");
 
-  Serial.print("My ID is "); 
-  Serial.print(MY_PJON_ID); 
-  Serial.println(".");  
+  Serial.print("My ID is ");
+  Serial.print(MY_PJON_ID);
+  Serial.println(".");
 
   // DS18B20 temperature sensor
   // locate devices on the bus
@@ -115,7 +115,7 @@ void setup() {
   } else {
     Serial.println("BME280 sensor started.");
   }
- 
+
   //BME280 scenario
   Serial.println("Weather Station Scenario:");
   //Serial.println("forced mode, 1x temperature / 1x humidity / 1x pressure oversampling,");
@@ -125,25 +125,25 @@ void setup() {
                   Adafruit_BME280::SAMPLING_X1, // pressure
                   Adafruit_BME280::SAMPLING_X1, // humidity
                   Adafruit_BME280::FILTER_OFF);
-                  //Adafruit_BME280::STANDBY_MS_1000);      
-                      
-  
+                  //Adafruit_BME280::STANDBY_MS_1000);
+
+
   // Set HC12 baudrate (you must use the one configured in HC12, default 9600)
   HC12.begin(HC12_SPEED);
   //delay(1000);
   //HC12.begin(9600);
   //HC12.write("AT+B2400");
-  //delay(1000);  
-  
+  //delay(1000);
+
   // Pass the HC12 Serial instance you want to use for PJON communication
   bus.strategy.set_serial(&HC12);
   bus.set_error(error_handler);
   bus.set_receiver(receiver_function);
   bus.set_synchronous_acknowledge(false);
-  bus.begin();    
+  bus.begin();
 };
 
-void fan_on() {  
+void fan_on() {
   Serial.println("Fan ON.");
   digitalWrite(FAN_CONTROL_PIN, HIGH);
   Fan_On = true;
@@ -176,14 +176,14 @@ void error_handler(uint8_t code, uint16_t data, void *custom_pointer) {
 void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info &packet_info) {
   /* Make use of the payload before sending something, the buffer where payload points to is
      overwritten when a new message is dispatched */
-  
+
   Serial.println();
-  
+
   Serial.print("Receiving from node ");
   Serial.println(packet_info.sender_id);
 
   Serial.print("Content length - ");
-  Serial.println(length);  
+  Serial.println(length);
 
   byte* cont_byte = (byte*)&control;
 
@@ -192,12 +192,12 @@ void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info
 
   Serial.print("Received content: ");
 
-  for(uint8_t i = 0; i < length; i++) {      
+  for(uint8_t i = 0; i < length; i++) {
       *(cont_byte++) = payload[i];
       Serial.print((char)payload[i]);
   }
   Serial.println();
-  
+
   // receive indicator OFF
   digitalWrite(LED_BUILTIN, LOW);
 
@@ -205,37 +205,37 @@ void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info
   Serial.println(control.command);
 
   Serial.print("Subcmd: ");
-  Serial.println(control.subcommand);  
+  Serial.println(control.subcommand);
 
   Serial.print("Val: ");
-  Serial.println(control.value); 
+  Serial.println(control.value);
 
-  if (strcmp(control.command, "get") == 0 && strcmp(control.subcommand, "all") == 0) {        
+  if (strcmp(control.command, "get") == 0 && strcmp(control.subcommand, "all") == 0) {
     bme.takeForcedMeasurement();
     SENSORS outside_sensors = { DS18B20_temp() , bme_temp(), bme_hum() , bme_press() };
-    
+
     if(!bus.update()) {
       Serial.println("Waiting before response.");
       delay(3000);
       Serial.println("Sending resp.");
-      bus.send(1, (const char*)&outside_sensors, sizeof(SENSORS));      
-    }    
+      bus.send(1, (const char*)&outside_sensors, sizeof(SENSORS));
+    }
   }
 
-  if (strcmp(control.command, "fan") == 0 && strcmp(control.subcommand, "on") == 0) {    
+  if (strcmp(control.command, "fan") == 0 && strcmp(control.subcommand, "on") == 0) {
     Timer_Fan_Control = millis();   // update timer
     fan_on();
   }
 
-  if (strcmp(control.command, "fan") == 0 && strcmp(control.subcommand, "off") == 0) {    
+  if (strcmp(control.command, "fan") == 0 && strcmp(control.subcommand, "off") == 0) {
     fan_off();
-  }  
+  }
 };
 
 float bme_temp() {
-    float temp;    
+    float temp;
     temp = bme.readTemperature();
-    
+
     Serial.print("BME temp = ");
     Serial.print(temp);
     Serial.println(" *C");
@@ -246,10 +246,10 @@ float bme_temp() {
 float bme_press() {
   float press;
   press = bme.readPressure() / 100.0F;
-  
+
   Serial.print("Press = ");
   Serial.print(press);
-  Serial.println(" hPa");  
+  Serial.println(" hPa");
 
   return press;
 };
@@ -257,7 +257,7 @@ float bme_press() {
 float bme_hum() {
   float hum;
   hum = bme.readHumidity();
-  
+
   Serial.print("Hum = ");
   Serial.print(hum);
   Serial.println(" %");
@@ -269,19 +269,19 @@ float bme_hum() {
 float DS18B20_temp() {
   float temp;
 
-  Serial.println("Requesting temp..."); 
-  DS18B20.requestTemperatures(); // Send the command to get temperature readings 
-  //delay (750+50);  
-  
-  temp = DS18B20.getTempCByIndex(0);  
+  Serial.println("Requesting temp...");
+  DS18B20.requestTemperatures(); // Send the command to get temperature readings
+  //delay (750+50);
+
+  temp = DS18B20.getTempCByIndex(0);
 
   if (temp == -127) {
     Serial.println("Wrong temp. from DS18B20 (-127).");
     temp = -99.9;
   }
-  
-  Serial.print("DS18B20 temperature is: "); 
-  Serial.println(temp);    
+
+  Serial.print("DS18B20 temperature is: ");
+  Serial.println(temp);
   return temp;
 };
 
@@ -290,9 +290,9 @@ void loop() {
   bus.update();
 
   if (Fan_On) {
-    if (millis() - Timer_Fan_Control >= NODE_TIMEOUT) {      
+    if (millis() - Timer_Fan_Control >= NODE_TIMEOUT) {
       Serial.println("No conf. of fan run from main node.");
-      fan_off();      
+      fan_off();
     }
   }
 

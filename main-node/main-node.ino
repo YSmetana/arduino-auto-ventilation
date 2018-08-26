@@ -13,8 +13,8 @@
 #define BASEMENT_TEMP_MAX 30  // maximum temperature in basement
 #define HUM_DELTA 0.5         // difference between outside and basement abs. hum. to run vent.
 
-#define Node_Request 0.2 *60*1000000  // minutes, how often request data from a node (PJON microseconds)
-#define Node_Timeout 0.4 *60*1000UL   // minutes, time after which node considered unreachable (Arduino milliseconds)
+#define Node_Request 0.5 *60*1000000  // minutes, how often request data from a node (PJON microseconds)
+#define Node_Timeout 1 *60*1000UL   // minutes, time after which node considered unreachable (Arduino milliseconds)
 
 #define Vent_Check_Every 1 *60*1000UL         // minutes, how often calculate if we need vent.
 #define Vent_Running_Max_Time 8 *60*60*1000UL // hours, maximum time keeping the vent running.
@@ -24,7 +24,7 @@
  * Other settings
  */
 #define BLINK_DUR 500UL             // when blinking icons on the dispay
-#define DISPLAY_SAVER 0.2 *60*1000  // minutes, display goes off after this time
+#define DISPLAY_SAVER 1 *60*1000UL  // minutes, display goes off after this time
 #define PROXIMITY_PIN 2
 bool Display_On = true;             // display state
 bool Receiving = false;             // data receiving status
@@ -71,10 +71,10 @@ SENSORS SENS_BASEMENT;  // data from basement sensors
  * PJON - Arduino compatible, multi-master, multi-media network protocol.
  * https://github.com/gioblu/PJON
  */
-#define TS_BYTE_TIME_OUT 80000 // 80 ms max
-#define TS_RESPONSE_TIME_OUT 3000000 // PJON timeout, if operating at less than 9600Bd should be longer
+#define TS_BYTE_TIME_OUT 20000        // 80 ms max
+#define TS_RESPONSE_TIME_OUT 1000000  // micro sec., PJON timeout, if operating at less than 9600Bd should be longer
 #define PJON_PACKET_MAX_LENGTH 32
-#define TS_MAX_ATTEMPTS   1
+#define TS_MAX_ATTEMPTS 1
 #define PJON_INCLUDE_TS
 #include <PJON.h>
 PJON<ThroughSerial> bus(NODE_ID_ME);  // <Strategy name> bus(selected device id)
@@ -158,15 +158,15 @@ void setup() {
   bus.strategy.set_serial(&HC12); // Pass the HC12 Serial instance you want to use it for PJON communication
   bus.set_error(error_handler);
   bus.set_receiver(receiver_function);
-  bus.set_synchronous_acknowledge(false);
+  //bus.set_synchronous_acknowledge(false);
   bus.begin();
 
   // Repeatedly asking nodes to send data
   CONTROL Command = {"get","all",0};
   bus.send_repeatedly(NODE_ID_OUTSIDE,  (const char*)&Command, sizeof(CONTROL), Node_Request); // seconds * 1000000
-  delay(1000);
+  delay(TS_RESPONSE_TIME_OUT/1000 * 5); // 2 times more then PJON responce time out
   bus.send_repeatedly(NODE_ID_BASEMENT, (const char*)&Command, sizeof(CONTROL), Node_Request); // seconds * 1000000
-  delay(1000);
+  delay(TS_RESPONSE_TIME_OUT/1000 * 5); // 2 times more then PJON responce time out
 
   Timer_Check_Vent = millis(); // to check if its is time to calc ventilation process
 };
@@ -317,8 +317,8 @@ bool run_ventilation() {
     Serial.println("Outside or basement temperature has wrong value (-99.9).");
   }
 
-  if(rel2abs_hum(SENS_OUTSIDE.humidity, SENS_OUTSIDE.temperature) -
-     rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature)
+  if(rel2abs_hum(SENS_OUTSIDE.humidity, SENS_OUTSIDE.temperature2) -
+     rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature2)
      >= HUM_DELTA) {
     Serial.println("Outside abs. hum > basement abs. hum.");
     run = false;
@@ -432,8 +432,8 @@ void pageAbsHumidity() {
   char basement_hum[4+1]; // 99.9
 
   //itoa(round(rel2abs_hum(sensors.humidity, sensors.temperature)), outside_hum, 10);
-  float2char(rel2abs_hum(SENS_OUTSIDE.humidity, SENS_OUTSIDE.temperature ), outside_hum);
-  float2char(rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature), basement_hum);
+  float2char(rel2abs_hum(SENS_OUTSIDE.humidity, SENS_OUTSIDE.temperature2 ), outside_hum);
+  float2char(rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature2), basement_hum);
 
   u8g2.drawXBMP( 0, 16, humidity_abs_32_width, humidity_abs_32_height, humidity_abs_32_bits);
   u8g2.setFont(u8g2_font_pxplusibmvga8_mf);

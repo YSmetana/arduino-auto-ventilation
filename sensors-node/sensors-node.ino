@@ -4,7 +4,7 @@
 #define MY_PJON_ID 20 // PJON device ID
 
 #define FAN_CONTROL_PIN 4
-#define HUM_CORR -1 // correction to humidity result
+#define HUM_CORR 0 // correction to humidity result
 
 #define NODE_TIMEOUT 2 *60*1000UL   // minutes, time after which data considered obsolete (Arduino milliseconds)
 unsigned long Timer_Fan_Control = millis();
@@ -43,11 +43,11 @@ Adafruit_BME280 bme;                    // I2C
 AltSoftSerial HC12;         // Arduino Pro Mini: HC-12_TX-PIN8_RX, HC-12_RX-PIN9_TX; Arduino Mega: HC-12_TX-PIN48_RX, HC-12_RX-PIN46_TX;
 #define HC12_SPEED 2400
 
-#define TS_BYTE_TIME_OUT 80000 // 80 ms max
-#define TS_RESPONSE_TIME_OUT 3000000
+#define TS_BYTE_TIME_OUT 20000 // 80 ms max
+#define TS_RESPONSE_TIME_OUT 1000000
 #define PJON_PACKET_MAX_LENGTH 32
 #define PJON_INCLUDE_TS
-#define TS_MAX_ATTEMPTS   1
+#define TS_MAX_ATTEMPTS 1
 #include <PJON.h>
 // <Strategy name> bus(selected device id)
 PJON<ThroughSerial> bus(MY_PJON_ID);
@@ -139,7 +139,7 @@ void setup() {
   bus.strategy.set_serial(&HC12);
   bus.set_error(error_handler);
   bus.set_receiver(receiver_function);
-  bus.set_synchronous_acknowledge(false);
+  //bus.set_synchronous_acknowledge(false);
   bus.begin();
 };
 
@@ -216,7 +216,7 @@ void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info
 
     if(!bus.update()) {
       Serial.println("Waiting before response.");
-      delay(3000);
+      delay(TS_RESPONSE_TIME_OUT/1000);
       Serial.println("Sending resp.");
       bus.send(1, (const char*)&outside_sensors, sizeof(SENSORS));
     }

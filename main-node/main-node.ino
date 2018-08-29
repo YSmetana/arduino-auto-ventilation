@@ -4,6 +4,8 @@
  * http://arduino.ru/forum/proekty/kontrol-vlazhnosti-podvala-arduino-pro-mini
  * http://arduinolab.pw/index.php/2017/05/04/upravlenie-vytyazhkoj-v-pogrebe-ili-podvale/
  */
+#define DEBUG false
+#define Serial if(DEBUG)Serial  // https://forum.arduino.cc/index.php?topic=155268.0
 
 #define NODE_ID_ME 1          // PJON device ID
 #define NODE_ID_OUTSIDE 10
@@ -166,7 +168,7 @@ void setup() {
   bus.send_repeatedly(NODE_ID_OUTSIDE,  (const char*)&Command, sizeof(CONTROL), Node_Request); // seconds * 1000000
   delay(TS_RESPONSE_TIME_OUT/1000 * 5); // to avoid inteference with response from the previous node
   bus.send_repeatedly(NODE_ID_BASEMENT, (const char*)&Command, sizeof(CONTROL), Node_Request); // seconds * 1000000
-  delay(TS_RESPONSE_TIME_OUT/1000 * 5); 
+  delay(TS_RESPONSE_TIME_OUT/1000 * 5);
 
   Timer_Check_Vent = millis(); // to check if its is time to calc ventilation process
 };

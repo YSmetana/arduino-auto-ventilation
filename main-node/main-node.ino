@@ -120,9 +120,9 @@ bool run_ventilation();
  * Pages on display
  */
 int current_page = 0;
-void (*pages[])() = {pageTemperature, pageHumidity, pageAbsHumidity, pagePressure, pageTimeDay};
+void (*pages[])() = {pageTemperature, pageHumidity, pageAbsHumidity, pagePressure};
 unsigned int pages_count = 4;
-int page_duration[] = {3000UL, 3000UL, 3000UL, 3000UL, 1000UL};
+int page_duration[] = {5000UL, 5000UL, 5000UL, 3000UL};
 
 /*
  * SETUP
@@ -402,7 +402,8 @@ void pageTemperature(){
   u8g2.drawStr( right_x(basement_temp_str,32), 62, basement_temp_str);
 
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
-  u8g2.drawUTF8(104, 36, "°C");
+  u8g2.drawCircle(104, 28, 2, U8G2_DRAW_ALL); // Degree symbol :), bacause font is truncated. +200 bytes.
+  u8g2.drawUTF8(110, 36, "C");
 
   u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
   u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
@@ -480,18 +481,6 @@ void pagePressure() {
 
   u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
   u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
-  return 0;
-}
-
-void pageTimeDay() {
-  char time_now[] = "08:48";
-  char date_now[] = "22.07.18";
-
-  u8g2.setFont(u8g2_font_inb30_mn);
-  u8g2.drawStr( center_x(time_now), 40, time_now);
-
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
-  u8g2.drawUTF8(center_x(date_now), 64, date_now);
   return 0;
 }
 

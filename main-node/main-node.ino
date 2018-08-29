@@ -401,7 +401,7 @@ void pageTemperature(){
   u8g2.drawStr( right_x(outside_temp_str,32), 26, outside_temp_str);
   u8g2.drawStr( right_x(basement_temp_str,32), 62, basement_temp_str);
 
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
   u8g2.drawUTF8(104, 36, "°C");
 
   u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
@@ -418,7 +418,7 @@ void pageHumidity() {
 
 
   u8g2.drawXBMP( 0, 16, humidity_32_width, humidity_32_height, humidity_32_bits);
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
   u8g2.drawUTF8(8, 64, "RH");
 
   u8g2.setFont(u8g2_font_logisoso24_tr);
@@ -426,7 +426,7 @@ void pageHumidity() {
   u8g2.drawStr(right_x(basement_hum, 32), 64, basement_hum);
 
 
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
   u8g2.drawUTF8(104, 36, "%");
 
   u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
@@ -443,7 +443,7 @@ void pageAbsHumidity() {
   float2char(rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature2), basement_hum);
 
   u8g2.drawXBMP( 0, 16, humidity_abs_32_width, humidity_abs_32_height, humidity_abs_32_bits);
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
   u8g2.drawUTF8(8, 64, "AH");
 
   u8g2.setFont(u8g2_font_logisoso24_tr);
@@ -451,7 +451,7 @@ void pageAbsHumidity() {
   u8g2.drawStr(right_x(basement_hum, 32), 64, basement_hum);
 
 
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
   u8g2.drawUTF8(104, 28, "g/");
   u8g2.drawUTF8(104, 44, "m3");
 
@@ -474,7 +474,7 @@ void pagePressure() {
   u8g2.drawStr(right_x(outside_press, 32), 24, outside_press);
   u8g2.drawStr(right_x(basement_press, 32), 64, basement_press);
 
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
   u8g2.drawUTF8(104, 28, "mm");
   u8g2.drawUTF8(104, 44, "Hg");
 
@@ -490,7 +490,7 @@ void pageTimeDay() {
   u8g2.setFont(u8g2_font_inb30_mn);
   u8g2.drawStr( center_x(time_now), 40, time_now);
 
-  u8g2.setFont(u8g2_font_pxplusibmvga8_mf);
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
   u8g2.drawUTF8(center_x(date_now), 64, date_now);
   return 0;
 }

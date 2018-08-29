@@ -33,8 +33,6 @@ bool Receiving = false;             // data receiving status
 byte Receiving_From_Node;           // last data received from this node
 bool Fan_On = false;                // fan is working
 
-
-
 /*
  * Timers
  */
@@ -45,19 +43,19 @@ unsigned long Timer_Check_Vent;               // to check if its is time to chec
 unsigned long Timer_Vent_Running = 0;         // how long is it running already
 unsigned long Timer_Node_Outside = millis();  // node timeout
 unsigned long Timer_Node_Basement = millis(); // node timeout
-unsigned long Timer_Display_On = millis(); // node timeout
+unsigned long Timer_Display_On = millis();    // node timeout
 
 /*
  * Data structures
  */
-struct SENSORS{       // for sending data
+struct SENSORS{         // for sending data
   float temperature;
   float temperature2;
   float humidity;
   float pressure;
 };
 
-struct CONTROL {       // for controlling nodes
+struct CONTROL {        // for controlling nodes
   char command[3+1];
   char subcommand[3+1];
   int16_t value;
@@ -84,11 +82,12 @@ PJON<ThroughSerial> bus(NODE_ID_ME);  // <Strategy name> bus(selected device id)
 /*
  * U8g2 is a monochrome graphics library for embedded devices.
  * https://github.com/olikraus/u8g2/wiki
+ * OLED 0.96" I2C 128x64, https://arduino.ua/prod1263-oled-displei-modyl-belii
  */
 #include <U8g2lib.h>
-// OLED 0.96" I2C 128x64, https://arduino.ua/prod1263-oled-displei-modyl-belii
-//U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE); // full buffer
+//U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE); // full buffer, consumes more RAM
+//U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE); // 1 page mode
+U8G2_SSD1306_128X64_NONAME_2_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);   // 2 pages mode
 // For proper text align.
 #define DISPLAY_WIDTH 128
 #define DISPLAY_HEIGH 64
@@ -596,29 +595,31 @@ void loop() {
   bus.receive(50000);
   bus.update();
 
-  u8g2.clearBuffer();
-
-  if (Receiving) {
-    //blink_fan();
-    blink_receiving();
-  }
-
-  if (Fan_On) {
-    blink_fan();
-  }
-
-  if (Display_On) {
-      (*pages[current_page])();
-      u8g2.sendBuffer();
-
-    if (millis()-Timer_Page_Display >= page_duration[current_page]) {
-      current_page++;
-      if (current_page > pages_count-1)
-        current_page=0;
-
-      Timer_Page_Display = millis();
+  //u8g2.clearBuffer(); // if full buffer mode
+  u8g2.firstPage();     // page mode
+  do {
+    if (Receiving) {
+      //blink_fan();
+      blink_receiving();
     }
-  }
+
+    if (Fan_On) {
+      blink_fan();
+    }
+
+    if (Display_On) {
+        (*pages[current_page])();
+        //u8g2.sendBuffer();  // if full buffer mode
+
+      if (millis()-Timer_Page_Display >= page_duration[current_page]) {
+        current_page++;
+        if (current_page > pages_count-1)
+          current_page=0;
+
+        Timer_Page_Display = millis();
+      }
+    }
+  } while ( u8g2.nextPage() );
 
   // check if we need to run vetilation
   if (time_to_check_vent()) {

@@ -4,7 +4,7 @@
  * http://arduino.ru/forum/proekty/kontrol-vlazhnosti-podvala-arduino-pro-mini
  * http://arduinolab.pw/index.php/2017/05/04/upravlenie-vytyazhkoj-v-pogrebe-ili-podvale/
  */
-#define DEBUG false
+#define DEBUG true
 #define Serial if(DEBUG)Serial  // https://forum.arduino.cc/index.php?topic=155268.0
 
 #define NODE_ID_ME 1          // PJON device ID
@@ -16,7 +16,7 @@
 #define HUM_DELTA 0.5         // difference between outside and basement abs. hum. to run vent.
 
 #define Node_Request 0.5 *60*1000000  // minutes, how often request data from a node (PJON microseconds)
-#define Node_Timeout 1 *60*1000UL   // minutes, time after which node considered unreachable (Arduino milliseconds)
+#define Node_Timeout 1 *60*1000UL     // minutes, time after which node considered unreachable (Arduino milliseconds)
 
 #define Vent_Check_Every 1 *60*1000UL         // minutes, how often calculate if we need vent.
 #define Vent_Running_Max_Time 8 *60*60*1000UL // hours, maximum time keeping the vent running.
@@ -30,8 +30,8 @@
 #define PROXIMITY_PIN 2
 bool Display_On = true;             // display state
 bool Receiving = false;             // data receiving status
-byte Receiving_From_Node;           // last data received from this node
 bool Fan_On = false;                // fan is working
+byte Receiving_From_Node;           // last data received from this node ID
 
 /*
  * Timers
@@ -129,16 +129,16 @@ int page_duration[] = {5000UL, 5000UL, 5000UL, 3000UL};
  */
 void setup() {
   Serial.begin(9600);
-  Serial.println("Start");
+  Serial.println(F("Go"));
 
-  Serial.print("My ID is "); Serial.print(NODE_ID_ME); Serial.println(".");
-  Serial.print("Req. data from nodes every "); Serial.print(Node_Request/60/1000000); Serial.println("m.");
-  Serial.print("Node timeout is "); Serial.print(Node_Timeout/60/1000); Serial.println("m.");
-  Serial.print("Calc. if we need vent. every "); Serial.print(Vent_Check_Every/60/1000); Serial.println("m.");
-  Serial.print("Max. dur. of vent. is "); Serial.print(Vent_Running_Max_Time/60/60/1000); Serial.println("h.");
-  Serial.print("Min. temp in bas. is "); Serial.print(BASEMENT_TEMP_MIN); Serial.println("°C.");
-  Serial.print("Max. temp in bas. is "); Serial.print(BASEMENT_TEMP_MAX); Serial.println("°C.");
-  Serial.print("Abs hum. delta is "); Serial.print(HUM_DELTA); Serial.println(" g/m3.");
+  Serial.print(F("ID ")); Serial.print(NODE_ID_ME,DEC); Serial.println(F("."));
+  Serial.print(F("Query nodes  ")); Serial.print(Node_Request/60/1000000); Serial.println(F("m."));
+  Serial.print(F("N. timeout ")); Serial.print(Node_Timeout/60/1000); Serial.println(F("m."));
+  Serial.print(F("Check V ")); Serial.print(Vent_Check_Every/60/1000); Serial.println(F("m."));
+  Serial.print(F("V max. dur ")); Serial.print(Vent_Running_Max_Time/60/60/1000); Serial.println(F("h."));
+  Serial.print(F("Bas. min. T ")); Serial.print(BASEMENT_TEMP_MIN); Serial.println(F("°C."));
+  Serial.print(F("Bas. max T ")); Serial.print(BASEMENT_TEMP_MAX); Serial.println(F("°C."));
+  Serial.print(F("A. H delta ")); Serial.print(HUM_DELTA); Serial.println(F(" g/m3."));
   Serial.println();
 
   pinMode(PROXIMITY_PIN, INPUT);
@@ -177,18 +177,17 @@ void error_handler(uint8_t code, uint16_t data, void *custom_pointer) {
    * Pjon errors handlers
    */
   if(code == PJON_CONNECTION_LOST) {
-    Serial.print("Conn. with ID ");
+    Serial.print(F("No conn., ID "));
     Serial.print(bus.packets[data].content[0], DEC);
-    Serial.println(" lost.");
   }
   if(code == PJON_PACKETS_BUFFER_FULL) {
-    Serial.print("Packet buff. is full, has now a length of ");
+    Serial.print(F("P. buff. "));  // Packet buff. is full, has now a length of
     Serial.println(data, DEC);
-    Serial.println("Possible wrong bus configuration!");
-    Serial.println("higher PJON_MAX_PACKETS if necessary.");
+    Serial.println(F("Bad config?")); // Possible wrong bus configuration!
+                                      // higher PJON_MAX_PACKETS if necessary.
   }
   if(code == PJON_CONTENT_TOO_LONG) {
-    Serial.print("Content is too long, length: ");
+    Serial.print(F("Cont. too long: "));
     Serial.println(data);
   }
 };
@@ -202,9 +201,9 @@ void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info
   Receiving = true;
   Receiving_From_Node = packet_info.sender_id;
 
-  Serial.print("Rec. from ID ");
+  Serial.print(F("Rec., ID "));
   Serial.println(packet_info.sender_id);
-  Serial.print("Cont. len. ");
+  Serial.print(F("Cont. len. "));
   Serial.println(length);
 
   String content = "";
@@ -224,11 +223,13 @@ void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info
 
     SENS_OUTSIDE = Sensors;         // assign received values to global struct
 
-    Serial.print("Outside temp: ");
+    Serial.print(F("Outs. T (DS): "));
     Serial.println(SENS_OUTSIDE.temperature);
-    Serial.print("Outside hum: ");
+    Serial.print(F("Outs. T (BMP): "));
+    Serial.println(SENS_OUTSIDE.temperature2);
+    Serial.print(F("Outs. H: "));
     Serial.println(SENS_OUTSIDE.humidity);
-    Serial.print("Outside press: ");
+    Serial.print(F("Outs. P: "));
     Serial.println(SENS_OUTSIDE.pressure);
     Serial.println();
   }
@@ -239,11 +240,13 @@ void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info
 
     SENS_BASEMENT = Sensors;        // assign received values to global struct
 
-    Serial.print("Basement temp: ");
+    Serial.print(F("Bas. T (DS): "));
     Serial.println(SENS_BASEMENT.temperature);
-    Serial.print("Basement hum: ");
+    Serial.print(F("Bas. T (BMP): "));
+    Serial.println(SENS_BASEMENT.temperature2);
+    Serial.print(F("Bas. H: "));
     Serial.println(SENS_BASEMENT.humidity);
-    Serial.print("Basement press: ");
+    Serial.print(F("Bas. P: "));
     Serial.println(SENS_BASEMENT.pressure);
     Serial.println();
   }
@@ -293,63 +296,63 @@ bool run_ventilation() {
    */
   bool run = true;  // allowed by default
 
-  Serial.println("Check if we can run ventilator...");
+  Serial.println(F("Check V")); // Checking ventilation
 
   if (!Node_Outside_Active()) {
-    Serial.println("Outside module data are not up to date.");
+    Serial.println(F("Outs. no upd.")); // Outside module data are not up to date.
     run = false;
   }
 
   if (!Node_Basement_Active()) {
-    Serial.println("Basement module data are not up to date.");
+    Serial.println(F("Bas. no upd.")); // Basement module data are not up to date.
     run = false;
   }
 
   if (vent_too_long()) {
-    Serial.println("Ventilator has been working too long already.");  // TODO: power off period
+    Serial.println(F("Vent. too long"));  // TODO: power off period // Ventilator has been working too long already.
     run = false;
   }
 
   if (SENS_OUTSIDE.humidity == 0 || SENS_BASEMENT.humidity == 0) {
-    Serial.println("Outside or basement humidity has wrong value (0).");
+    Serial.println(F("Outs. or bas. H=0")); // Outside or basement humidity has wrong value (0).
   }
 
   if (SENS_OUTSIDE.temperature == -99.9 || SENS_BASEMENT.temperature == -99.9) {
-    Serial.println("Outside or basement temperature has wrong value (-99.9).");
+    Serial.println(F("Outs. or bas. T=-99.9")); // Outside or basement temperature has wrong value (-99.9)."
   }
 
 //  if(rel2abs_hum(SENS_OUTSIDE.humidity, SENS_OUTSIDE.temperature2) -
 //     rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature2)
 //     >= HUM_DELTA) {
-//    Serial.println("Outside abs. hum > basement abs. hum.");
+//    Serial.println(F("Outside abs. hum > basement abs. hum."));
 //    run = false;
 //  }
 
-  if(rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature2) + HUM_DELTA >
-     rel2abs_hum(SENS_OUTSIDE.humidity, SENS_OUTSIDE.temperature2)) {
-    Serial.println("Outside abs. hum + HUM_DELTA > basement abs. hum.");
+  if(rel2abs_hum(SENS_OUTSIDE.humidity, SENS_BASEMENT.temperature2)  >
+     rel2abs_hum(SENS_BASEMENT.humidity, SENS_OUTSIDE.temperature2) -  HUM_DELTA) {
+    Serial.println(F("Outs. AH > bas. AH - (H_DELTA)")); // Outside abs. hum  > basement abs. hum. - HUM_DELTA
     run = false;
   }
 
   if (SENS_OUTSIDE.temperature > BASEMENT_TEMP_MAX) {
-    Serial.print("Outside temp is higher then basement max. temp: ");
+    Serial.print(F("Outs. T > bas. max. T: ")); // Outside temp is higher then basement max. temp:
     Serial.print(BASEMENT_TEMP_MAX);
-    Serial.println(".");
+    Serial.println(F("."));
     run = false;
   }
 
   if (SENS_OUTSIDE.temperature < BASEMENT_TEMP_MIN) {
-    Serial.print("Outside temp is lower then basement min. temp: ");
+    Serial.print(F("Outs. T < bas. min. T: ")); // Outside temp is lower then basement min. temp:
     Serial.print(BASEMENT_TEMP_MIN);
-    Serial.println(".");
+    Serial.println(F("."));
     run = false;
   }
 
   if (!run) {
-    Serial.println("Deny to run ventilator.");
+    Serial.println(F("No V")); // Deny to run ventilator.
     Serial.println();
   } else {
-    Serial.println("All conditions are good to run the ventilator.");
+    Serial.println(F("Run V")); // All conditions are good to run the ventilator.
     Serial.println();
   }
 
@@ -383,6 +386,14 @@ void float2char(float number, char *output, bool sign=false) {
   }
 }
 
+void drawArrows() {
+  /*
+  * Small arrows on the right side explaining the outside and inside sensors data.
+  */
+  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
+  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
+}
+
 void pageTemperature(){
   char outside_temp_str[5+1]; // +99.9
   char basement_temp_str[5+1];
@@ -405,8 +416,7 @@ void pageTemperature(){
   u8g2.drawCircle(104, 28, 2, U8G2_DRAW_ALL); // Degree symbol :), bacause font is truncated. +200 bytes.
   u8g2.drawUTF8(110, 36, "C");
 
-  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
-  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
+  drawArrows();
   return 0;
 }
 void pageHumidity() {
@@ -430,8 +440,7 @@ void pageHumidity() {
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
   u8g2.drawUTF8(104, 36, "%");
 
-  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
-  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
+  drawArrows();
   return 0;
 }
 
@@ -456,8 +465,7 @@ void pageAbsHumidity() {
   u8g2.drawUTF8(104, 28, "g/");
   u8g2.drawUTF8(104, 44, "m3");
 
-  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
-  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
+  drawArrows();
   return 0;
 }
 
@@ -479,8 +487,7 @@ void pagePressure() {
   u8g2.drawUTF8(104, 28, "mm");
   u8g2.drawUTF8(104, 44, "Hg");
 
-  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
-  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
+  drawArrows();
   return 0;
 }
 
@@ -502,9 +509,9 @@ void blink_fan() {
   if (millis()-Timer_Blink < BLINK_DUR) {
     u8g2.drawXBMP(0, 0, fan_8_width, fan_8_height, fan_8_bits);
   }
-  if (millis()-Timer_Blink >= BLINK_DUR && millis()-Timer_Blink < BLINK_DUR*2) {
+  //if (millis()-Timer_Blink >= BLINK_DUR && millis()-Timer_Blink < BLINK_DUR*2) {
     //u8g2.drawXBMP(0, 0, fan_8_width, fan_8_height, fan_8_bits);
-  }
+  //}
 
   if (millis()-Timer_Blink >= BLINK_DUR*2) {
     Timer_Blink = millis();

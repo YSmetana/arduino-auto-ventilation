@@ -4,7 +4,7 @@
  * http://arduino.ru/forum/proekty/kontrol-vlazhnosti-podvala-arduino-pro-mini
  * http://arduinolab.pw/index.php/2017/05/04/upravlenie-vytyazhkoj-v-pogrebe-ili-podvale/
  */
-#define DEBUG true
+#define DEBUG false
 #define Serial if(DEBUG)Serial  // https://forum.arduino.cc/index.php?topic=155268.0
 
 #define NODE_ID_ME 1          // PJON device ID
@@ -32,6 +32,8 @@ bool Display_On = true;             // display state
 bool Receiving = false;             // data receiving status
 bool Fan_On = false;                // fan is working
 byte Receiving_From_Node;           // last data received from this node ID
+bool Node_Outside_Online = false;   // node data up to date
+bool Node_Basement_Online = false;  // node data up to date
 
 /*
  * Timers
@@ -110,7 +112,7 @@ void pageHumidity();
 void pageAbsHumidity();
 void pagePressure();
 void pageTimeDay();
-void blink_fan();
+void blink(char icon[3]);
 void float2char (float value, char * input, bool sign=false);
 unsigned int center_x(char* message, int margin_left=0, int margin_right=0);
 unsigned int right_x(char* message, int margin_right=0);
@@ -219,6 +221,7 @@ void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info
 
   // Outside module
   if (packet_info.sender_id == NODE_ID_OUTSIDE) {
+    Node_Outside_Online = true;
     Timer_Node_Outside = millis();  // update timeout timer
 
     SENS_OUTSIDE = Sensors;         // assign received values to global struct
@@ -236,6 +239,7 @@ void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info
 
   // Basement module
   if (packet_info.sender_id == NODE_ID_BASEMENT) {
+    Node_Basement_Online = true;
     Timer_Node_Basement = millis(); // update timeout timer
 
     SENS_BASEMENT = Sensors;        // assign received values to global struct
@@ -390,8 +394,23 @@ void drawArrows() {
   /*
   * Small arrows on the right side explaining the outside and inside sensors data.
   */
-  u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
-  u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
+  if (Node_Outside_Online) {
+    // permanent icon
+    u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
+  } else {
+    // blinking icon
+    blink("arO");
+  }
+
+  if (Node_Basement_Online) {
+    // permanent icon
+    u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
+  }
+    else {
+      // blinking icon
+      blink("arB");
+    }
+
 }
 
 void pageTemperature(){
@@ -502,17 +521,22 @@ unsigned int right_x(char* message, int margin_right=0) {
   return DISPLAY_WIDTH-margin_right-u8g2.getStrWidth(message);
 }
 
-void blink_fan() {
+void blink(char icon[3]) {
   /*
-   * Blink fan icon.
+   * Blink icons.
    */
-  if (millis()-Timer_Blink < BLINK_DUR) {
-    u8g2.drawXBMP(0, 0, fan_8_width, fan_8_height, fan_8_bits);
-  }
-  //if (millis()-Timer_Blink >= BLINK_DUR && millis()-Timer_Blink < BLINK_DUR*2) {
-    //u8g2.drawXBMP(0, 0, fan_8_width, fan_8_height, fan_8_bits);
-  //}
 
+  if (millis()-Timer_Blink < BLINK_DUR) {
+
+      if (icon == "fan") {
+        u8g2.drawXBMP(0, 0, fan_8_width, fan_8_height, fan_8_bits);
+      } else if (icon == "arO") {
+        u8g2.drawXBMP( 120, 0, arrow_outside_8_width, arrow_outside_8_height, arrow_outside_8_bits);
+      } else if (icon == "arB") {
+        u8g2.drawXBMP( 120, 56, arrow_inside_8_width, arrow_inside_8_height, arrow_inside_8_bits);
+      }
+
+  }
   if (millis()-Timer_Blink >= BLINK_DUR*2) {
     Timer_Blink = millis();
   }
@@ -536,22 +560,26 @@ void blink_receiving() {
 
 bool Node_Outside_Active() {
   /*
-   * Check if the Noda data are up to date.
+   * Check if the Node data are up to date.
    */
   if (millis()-Timer_Node_Outside >= Node_Timeout) {
+    Node_Outside_Online = false;
     return false;
   } else {
+    Node_Outside_Online = true;
     return true;
   }
 }
 
 bool Node_Basement_Active() {
   /*
-   * Check if the Noda data are up to date.
+   * Check if the Node data are up to date.
    */
   if (millis()-Timer_Node_Basement >= Node_Timeout) {
+    Node_Basement_Online = false;
     return false;
   } else {
+    Node_Basement_Online = true;
     return true;
   }
 }
@@ -600,7 +628,7 @@ void loop() {
     }
 
     if (Fan_On) {
-      blink_fan();
+      blink("fan");
     }
 
     if (Display_On) {

@@ -27,13 +27,15 @@
  */
 #define BLINK_DUR 500UL             // when blinking icons on the dispay
 #define DISPLAY_SAVER 1 *60*1000UL  // minutes, display goes off after this time
-#define PROXIMITY_PIN 2
+#define PROXIMITY_PIN 2             // digital pin of proximity sensor
+#define VENT_COUNTER_RESET false    // Reset ven. worked minutes in EEPROM. Do not forget to set to false.
 bool Display_On = true;             // display state
 bool Receiving = false;             // data receiving status
 bool Fan_On = false;                // fan is working
-byte Receiving_From_Node;           // last data received from this node ID
 bool Node_Outside_Online = false;   // node data up to date
 bool Node_Basement_Online = false;  // node data up to date
+uint16_t Vent_Work_Total;           // total work time of ventilator
+byte Receiving_From_Node;           // last data received from this node ID
 
 /*
  * Timers
@@ -102,6 +104,8 @@ U8G2_SSD1306_128X64_NONAME_2_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);   
 AltSoftSerial HC12;         // Arduino Pro Mini: HC-12_TX-PIN8_RX, HC-12_RX-PIN9_TX; Arduino Mega: HC-12_TX-PIN48_RX, HC-12_RX-PIN46_TX;
 #define HC12_SPEED 2400
 
+#include <EEPROM.h>
+
 #include "images.h"  // icons
 
 /*
@@ -111,7 +115,7 @@ void pageTemperature();
 void pageHumidity();
 void pageAbsHumidity();
 void pagePressure();
-void pageTimeDay();
+void pageInfo();
 void blink(char icon[3]);
 void float2char (float value, char * input, bool sign=false);
 unsigned int center_x(char* message, int margin_left=0, int margin_right=0);
@@ -122,9 +126,9 @@ bool run_ventilation();
  * Pages on display
  */
 int current_page = 0;
-void (*pages[])() = {pageTemperature, pageHumidity, pageAbsHumidity, pagePressure};
-unsigned int pages_count = 4;
-int page_duration[] = {5000UL, 5000UL, 5000UL, 3000UL};
+void (*pages[])() = {pageTemperature, pageHumidity, pageAbsHumidity, pagePressure, pageInfo};
+unsigned int pages_count = 5;
+int page_duration[] = {5000UL, 5000UL, 5000UL, 3000UL, 5000UL};
 
 /*
  * SETUP
@@ -141,7 +145,16 @@ void setup() {
   Serial.print(F("Bas. min. T ")); Serial.print(BASEMENT_TEMP_MIN); Serial.println(F("°C."));
   Serial.print(F("Bas. max T ")); Serial.print(BASEMENT_TEMP_MAX); Serial.println(F("°C."));
   Serial.print(F("A. H delta ")); Serial.print(HUM_DELTA); Serial.println(F(" g/m3."));
+  Serial.print(F("V count. ")); Serial.println(EEPROM_read_int(0));
+  Serial.print(F("Reset V count. ")); Serial.println(VENT_COUNTER_RESET);
   Serial.println();
+
+  if (VENT_COUNTER_RESET) {
+    // set ventilation counter in EEPROM to 0
+    EEPROM_write_int(0,0);
+  }
+
+  Vent_Work_Total = EEPROM_read_int(0);
 
   pinMode(PROXIMITY_PIN, INPUT);
 
@@ -258,6 +271,22 @@ void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info
   digitalWrite(LED_BUILTIN, LOW);    // end of receiving
 };
 
+
+void EEPROM_write_int(uint8_t a, uint16_t b){
+  /*
+  * Writes a 2 bytes (16bit) integer to the EEPROM at the specified address
+  */
+  EEPROM.write(a, lowByte(b));
+  EEPROM.write(a + 1, highByte(b));
+}
+
+uint16_t EEPROM_read_int(uint8_t a){
+  /*
+  * Reads a 2 bytes (16bit) integer from the EEPROM at the specified address
+  */
+  return word(EEPROM.read(a + 1), EEPROM.read(a));
+}
+
 float rel2abs_hum(float t, float h) {
   /*
    * Rel humidity to abs. humidity
@@ -298,6 +327,16 @@ bool run_ventilation() {
   /*
    * Check all parameters and allow to run ventilation if needed.
    */
+
+  if (Fan_On) {
+    // increase fan work counter, minutes
+    Vent_Work_Total = EEPROM_read_int(0)+(Vent_Check_Every/60/1000);
+    EEPROM_write_int(0, Vent_Work_Total);
+
+    Serial.print("V total ");
+    Serial.println(EEPROM_read_int(0), DEC);
+  }
+
   bool run = true;  // allowed by default
 
   Serial.println(F("Check V")); // Checking ventilation
@@ -324,13 +363,6 @@ bool run_ventilation() {
   if (SENS_OUTSIDE.temperature == -99.9 || SENS_BASEMENT.temperature == -99.9) {
     Serial.println(F("Outs. or bas. T=-99.9")); // Outside or basement temperature has wrong value (-99.9)."
   }
-
-//  if(rel2abs_hum(SENS_OUTSIDE.humidity, SENS_OUTSIDE.temperature2) -
-//     rel2abs_hum(SENS_BASEMENT.humidity, SENS_BASEMENT.temperature2)
-//     >= HUM_DELTA) {
-//    Serial.println(F("Outside abs. hum > basement abs. hum."));
-//    run = false;
-//  }
 
   if(rel2abs_hum(SENS_OUTSIDE.humidity, SENS_BASEMENT.temperature2)  >
      rel2abs_hum(SENS_BASEMENT.humidity, SENS_OUTSIDE.temperature2) -  HUM_DELTA) {
@@ -433,7 +465,7 @@ void pageTemperature(){
 
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
   u8g2.drawCircle(104, 28, 2, U8G2_DRAW_ALL); // Degree symbol :), bacause font is truncated. +200 bytes.
-  u8g2.drawUTF8(110, 36, "C");
+  u8g2.drawStr(110, 36, "C");
 
   drawArrows();
   return 0;
@@ -449,7 +481,7 @@ void pageHumidity() {
 
   u8g2.drawXBMP( 0, 16, humidity_32_width, humidity_32_height, humidity_32_bits);
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
-  u8g2.drawUTF8(8, 64, "RH");
+  u8g2.drawStr(8, 64, "RH");
 
   u8g2.setFont(u8g2_font_logisoso24_tr);
   u8g2.drawStr(right_x(outside_hum, 32), 26, outside_hum);
@@ -457,7 +489,7 @@ void pageHumidity() {
 
 
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
-  u8g2.drawUTF8(104, 36, "%");
+  u8g2.drawStr(104, 36, "%");
 
   drawArrows();
   return 0;
@@ -473,7 +505,7 @@ void pageAbsHumidity() {
 
   u8g2.drawXBMP( 0, 16, humidity_abs_32_width, humidity_abs_32_height, humidity_abs_32_bits);
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
-  u8g2.drawUTF8(8, 64, "AH");
+  u8g2.drawStr(8, 64, "AH");
 
   u8g2.setFont(u8g2_font_logisoso24_tr);
   u8g2.drawStr(right_x(outside_hum, 32), 26, outside_hum);
@@ -481,8 +513,8 @@ void pageAbsHumidity() {
 
 
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
-  u8g2.drawUTF8(104, 28, "g/");
-  u8g2.drawUTF8(104, 44, "m3");
+  u8g2.drawStr(104, 28, "g/");
+  u8g2.drawStr(104, 44, "m3");
 
   drawArrows();
   return 0;
@@ -503,11 +535,31 @@ void pagePressure() {
   u8g2.drawStr(right_x(basement_press, 32), 64, basement_press);
 
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
-  u8g2.drawUTF8(104, 28, "mm");
-  u8g2.drawUTF8(104, 44, "Hg");
+  u8g2.drawStr(104, 28, "mm");
+  u8g2.drawStr(104, 44, "Hg");
 
   drawArrows();
   return 0;
+}
+
+void pageInfo() {
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
+
+  u8g2.drawStr(0, 24, "V tot:");
+  u8g2.setCursor(74, 24);
+  u8g2.print(Vent_Work_Total);
+
+  u8g2.drawStr(0, 40, "Rec. O/B:");
+  u8g2.setCursor(74, 40);
+  u8g2.print((millis()-Timer_Node_Outside)/1000);
+  u8g2.setCursor(98, 40);
+  u8g2.print((millis()-Timer_Node_Basement)/1000);
+
+  //u8g2.drawStr(0, 56, "Rec. B:");
+  //u8g2.setCursor(64, 56);
+  //u8g2.print((millis()-Timer_Node_Basement)/1000);
+
+  //u8g2.drawStr(0, 62, "Test :");
 }
 
 unsigned int center_x(char* message, int margin_left=0, int margin_right=0) {

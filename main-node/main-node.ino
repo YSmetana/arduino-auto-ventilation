@@ -116,6 +116,7 @@ void pageHumidity();
 void pageAbsHumidity();
 void pagePressure();
 void pageInfo();
+void pageInfo2();
 void blink(char icon[3]);
 void float2char (float value, char * input, bool sign=false);
 unsigned int center_x(char* message, int margin_left=0, int margin_right=0);
@@ -126,9 +127,9 @@ bool run_ventilation();
  * Pages on display
  */
 int current_page = 0;
-void (*pages[])() = {pageTemperature, pageHumidity, pageAbsHumidity, pagePressure, pageInfo};
-unsigned int pages_count = 5;
-int page_duration[] = {5000UL, 5000UL, 5000UL, 3000UL, 5000UL};
+void (*pages[])() = {pageTemperature, pageHumidity, pageAbsHumidity, pagePressure, pageInfo, pageInfo2};
+unsigned int pages_count = 6;
+int page_duration[] = {5000UL, 5000UL, 5000UL, 3000UL, 5000UL, 5000UL};
 
 /*
  * SETUP
@@ -545,21 +546,29 @@ void pagePressure() {
 void pageInfo() {
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
 
-  u8g2.drawStr(0, 24, "V tot:");
-  u8g2.setCursor(74, 24);
+  u8g2.drawStr(0, 24, "V tot (m)");   // total hours of vent. runned
+  u8g2.setCursor(104, 24);
   u8g2.print(Vent_Work_Total);
 
-  u8g2.drawStr(0, 40, "Rec. O/B:");
-  u8g2.setCursor(74, 40);
+  u8g2.drawStr(0, 40, "Next chk (s)"); // next check, seconds
+  u8g2.setCursor(104, 40);
+  u8g2.print((Vent_Check_Every-(millis()-Timer_Check_Vent))/1000);
+
+  //u8g2.drawStr(0, 56, "Last chk");
+  //u8g2.setCursor(104, 56);
+  //u8g2.print((millis()-Timer_Check_Vent)/1000);
+}
+
+void pageInfo2() {
+  u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
+
+  u8g2.drawStr(72, 24, "Out Bas");  // Outside, Basement
+
+  u8g2.drawStr(0, 40, "Last chk"); // last checked, seconds
+  u8g2.setCursor(72, 40);
   u8g2.print((millis()-Timer_Node_Outside)/1000);
-  u8g2.setCursor(98, 40);
+  u8g2.setCursor(104, 40);
   u8g2.print((millis()-Timer_Node_Basement)/1000);
-
-  //u8g2.drawStr(0, 56, "Rec. B:");
-  //u8g2.setCursor(64, 56);
-  //u8g2.print((millis()-Timer_Node_Basement)/1000);
-
-  //u8g2.drawStr(0, 62, "Test :");
 }
 
 unsigned int center_x(char* message, int margin_left=0, int margin_right=0) {

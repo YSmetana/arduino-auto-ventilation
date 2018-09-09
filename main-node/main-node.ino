@@ -151,16 +151,16 @@ void setup() {
   Serial.print(F("Bas. min. T ")); Serial.print(BASEMENT_TEMP_MIN); Serial.println(F("°C."));
   Serial.print(F("Bas. max T ")); Serial.print(BASEMENT_TEMP_MAX); Serial.println(F("°C."));
   Serial.print(F("A. H delta ")); Serial.print(HUM_DELTA); Serial.println(F(" g/m3."));
-  Serial.print(F("V count. ")); Serial.println(EEPROM_read_int(0));
+  Serial.print(F("V count. ")); Serial.print(EEPROM_read_long(0)); Serial.println(F("m."));
   Serial.print(F("Reset V count. ")); Serial.println(VENT_COUNTER_RESET);
   Serial.println();
 
   if (VENT_COUNTER_RESET) {
     // set ventilation counter in EEPROM to 0
-    EEPROM_write_int(0,0);
+    EEPROM_write_long(0,0);
   }
 
-  Vent_Work_Total = EEPROM_read_int(0);
+  Vent_Work_Total = EEPROM_read_long(0);
 
   pinMode(PROXIMITY_PIN, INPUT);
 
@@ -278,19 +278,36 @@ void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info
 };
 
 
-void EEPROM_write_int(uint8_t a, uint16_t b){
+void EEPROM_write_long(uint8_t address, uint16_t value){
   /*
-  * Writes a 2 bytes (16bit) integer to the EEPROM at the specified address
+  * Write a 4 byte (32bit) long to the eeprom at
+  * the specified address to address + 3.
   */
-  EEPROM.write(a, lowByte(b));
-  EEPROM.write(a + 1, highByte(b));
+     //Decomposition from a long to 4 bytes by using bitshift.
+      //One = Most significant -> Four = Least significant byte
+      byte four = (value & 0xFF);
+      byte three = ((value >> 8) & 0xFF);
+      byte two = ((value >> 16) & 0xFF);
+      byte one = ((value >> 24) & 0xFF);
+
+      //Write the 4 bytes into the eeprom memory.
+      EEPROM.write(address, four);
+      EEPROM.write(address + 1, three);
+      EEPROM.write(address + 2, two);
+      EEPROM.write(address + 3, one);
 }
 
-uint16_t EEPROM_read_int(uint8_t a){
+uint16_t EEPROM_read_long(uint8_t address){
   /*
-  * Reads a 2 bytes (16bit) integer from the EEPROM at the specified address
+  * Read the 4 bytes from the eeprom memory from the specified address
   */
-  return word(EEPROM.read(a + 1), EEPROM.read(a));
+      long four = EEPROM.read(address);
+      long three = EEPROM.read(address + 1);
+      long two = EEPROM.read(address + 2);
+      long one = EEPROM.read(address + 3);
+
+      //Return the recomposed long by using bitshift.
+      return ((four << 0) & 0xFF) + ((three << 8) & 0xFFFF) + ((two << 16) & 0xFFFFFF) + ((one << 24) & 0xFFFFFFFF);
 }
 
 float rel2abs_hum(float t, float h) {
@@ -323,7 +340,7 @@ bool time_to_check_vent () {
 
 bool vent_too_long() {
   if (millis()-Timer_Vent_Running > Vent_Running_Max_Time) {
-    //return true;
+    return true;
   } else {
     return false;
   }
@@ -336,11 +353,11 @@ bool run_ventilation() {
 
   if (Fan_On) {
     // increase fan work counter, minutes
-    Vent_Work_Total = EEPROM_read_int(0)+(Vent_Check_Every/60/1000);
-    EEPROM_write_int(0, Vent_Work_Total);
+    Vent_Work_Total = EEPROM_read_long(0)+(Vent_Check_Every/60/1000);
+    EEPROM_write_long(0, Vent_Work_Total);
 
     Serial.print("V total ");
-    Serial.println(EEPROM_read_int(0), DEC);
+    Serial.println(EEPROM_read_long(0), DEC);
   }
 
   bool run = true;  // allowed by default
@@ -594,7 +611,7 @@ void pageInfo() {
   u8g2.setCursor(104, 24);
   //u8g2.print(Vent_Work_Total);
   //sprintf(v_tot, "%dh", Vent_Work_Total);
-  time_and_units(temp_char, Vent_Work_Total*60);
+  time_and_units(temp_char, Vent_Work_Total*60);  // need Vent_Work_Total minutes to seconds conversions
   u8g2.print(temp_char);
 
   u8g2.drawStr(0, 40, "Next chk"); // next check, seconds

@@ -29,6 +29,11 @@
 #define DISPLAY_SAVER 1 *60*1000UL  // minutes, display goes off after this time
 #define PROXIMITY_PIN 2             // digital pin of proximity sensor
 #define VENT_COUNTER_RESET false    // Reset ven. worked minutes in EEPROM. Do not forget to set to false.
+#define SECONDS_MINUTE    60
+#define SECONDS_HOUR      60*60
+#define SECONDS_DAY       60*60*24
+#define SECONDS_MONTH     60*60*24*30
+#define SECONDS_99MONTHS  60*60*24*99
 bool Display_On = true;             // display state
 bool Receiving = false;             // data receiving status
 bool Fan_On = false;                // fan is working
@@ -446,8 +451,45 @@ void drawArrows() {
 
 }
 
+void time_and_units(char *output, unsigned long seconds) {
+  /*
+   * Converts time in seconds into seconds, minutes, hours, days with the short units name.
+   * 99 month is maximum.
+   * 35 -> "35s",
+   * 70 -> "1m",
+   * 3650 -> "1h" ,
+   * ...
+   * 8553600 -> "3M" (months).
+   */
+  char units;
+  int new_value;
+
+  if(seconds >= SECONDS_99MONTHS) {         // months
+      new_value = seconds/SECONDS_MONTH;
+      units = 'M';
+  } else if(seconds >= SECONDS_DAY) {       // days
+      new_value = seconds/SECONDS_DAY;
+      units = 'd';
+  } else if(seconds >= SECONDS_HOUR) {      // hours
+      new_value = seconds/SECONDS_HOUR;
+      units = 'h';
+  } else if(seconds >= SECONDS_MINUTE) {    // minutes
+    new_value = seconds/SECONDS_MINUTE;
+    units = 'm';
+  } else  {                                 // seconds
+      new_value = seconds;
+      units = 's';
+  }
+
+  if (new_value > 99) {
+    new_value = 99; // avoid char overrun
+  }
+
+  sprintf(output, "%2d%c", new_value, units);
+}
+
 void pageTemperature(){
-  char outside_temp_str[5+1]; // +99.9
+  char outside_temp_str[5+1];   // +99.9
   char basement_temp_str[5+1];
 
   //float2char(sensors.temperature, outside_temp_str);
@@ -544,15 +586,21 @@ void pagePressure() {
 }
 
 void pageInfo() {
+  char temp_char[3+1];
+
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
 
   u8g2.drawStr(0, 24, "V tot (m)");   // total hours of vent. runned
   u8g2.setCursor(104, 24);
-  u8g2.print(Vent_Work_Total);
+  //u8g2.print(Vent_Work_Total);
+  //sprintf(v_tot, "%dh", Vent_Work_Total);
+  time_and_units(temp_char, Vent_Work_Total*60);
+  u8g2.print(temp_char);
 
-  u8g2.drawStr(0, 40, "Next chk (s)"); // next check, seconds
+  u8g2.drawStr(0, 40, "Next chk"); // next check, seconds
   u8g2.setCursor(104, 40);
-  u8g2.print((Vent_Check_Every-(millis()-Timer_Check_Vent))/1000);
+  time_and_units(temp_char, (Vent_Check_Every-(millis()-Timer_Check_Vent))/1000);
+  u8g2.print(temp_char);
 
   //u8g2.drawStr(0, 56, "Last chk");
   //u8g2.setCursor(104, 56);
@@ -560,15 +608,20 @@ void pageInfo() {
 }
 
 void pageInfo2() {
+  char temp_char[3+1];
+
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
 
   u8g2.drawStr(72, 24, "Out Bas");  // Outside, Basement
-
   u8g2.drawStr(0, 40, "Last chk"); // last checked, seconds
+
   u8g2.setCursor(72, 40);
-  u8g2.print((millis()-Timer_Node_Outside)/1000);
+  time_and_units(temp_char, (millis()-Timer_Node_Outside)/1000);
+  u8g2.print(temp_char);
+
   u8g2.setCursor(104, 40);
-  u8g2.print((millis()-Timer_Node_Basement)/1000);
+  time_and_units(temp_char, (millis()-Timer_Node_Basement)/1000);
+  u8g2.print(temp_char);
 }
 
 unsigned int center_x(char* message, int margin_left=0, int margin_right=0) {

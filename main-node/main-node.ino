@@ -352,7 +352,8 @@ bool run_ventilation() {
    */
 
   if (Fan_On) {
-    // increase fan work counter, minutes
+    // If the fan was working, so one working period has just gone -
+    // increase fan work counter, minutes.
     Vent_Work_Total = EEPROM_read_long(0)+(Vent_Check_Every/60/1000);
     EEPROM_write_long(0, Vent_Work_Total);
 

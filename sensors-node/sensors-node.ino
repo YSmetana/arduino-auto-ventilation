@@ -1,5 +1,6 @@
 // TODO: Check if all sensors are available
 #define DEBUG false
+#define Serial if(DEBUG)Serial  // https://forum.arduino.cc/index.php?topic=155268.0
 
 #define MY_PJON_ID 20 // PJON device ID
 

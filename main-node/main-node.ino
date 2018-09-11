@@ -18,7 +18,7 @@
 #define Node_Request 0.5 *60*1000000  // minutes, how often request data from a node (PJON microseconds)
 #define Node_Timeout 1 *60*1000UL     // minutes, time after which node considered unreachable (Arduino milliseconds)
 
-#define Vent_Check_Every 1 *60*1000UL         // minutes, how often calculate if we need vent.
+#define  Vent_Check_Every 1 *60*1000UL         // minutes, how often calculate if we need vent.
 #define Vent_Running_Max_Time 8 *60*60*1000UL // hours, maximum time keeping the vent running.
 #define Vent_Rest_After_Run 5 *60*1000UL      // hours, maximum time keeping the vent running.
 
@@ -26,7 +26,7 @@
  * Other settings
  */
 #define BLINK_DUR 500UL             // when blinking icons on the dispay
-#define DISPLAY_SAVER 1 *60*1000UL  // minutes, display goes off after this time
+#define DISPLAY_SAVER 3 *60*1000UL  // minutes, display goes off after this time
 #define PROXIMITY_PIN 2             // digital pin of proximity sensor
 #define VENT_COUNTER_RESET false    // Reset ven. worked minutes in EEPROM. Do not forget to set to false.
 #define SECONDS_MINUTE    60
@@ -469,7 +469,7 @@ void drawArrows() {
 
 }
 
-void time_and_units(char *output, unsigned long seconds) {
+void time_and_units(char* output, unsigned long seconds) {
   /*
    * Converts time in seconds into seconds, minutes, hours, days with the short units name.
    * 99 month is maximum.
@@ -529,7 +529,6 @@ void pageTemperature(){
   u8g2.drawStr(110, 36, "C");
 
   drawArrows();
-  return 0;
 }
 void pageHumidity() {
   char outside_hum[6+1];  // 100.0
@@ -553,7 +552,6 @@ void pageHumidity() {
   u8g2.drawStr(104, 36, "%");
 
   drawArrows();
-  return 0;
 }
 
 void pageAbsHumidity() {
@@ -578,7 +576,6 @@ void pageAbsHumidity() {
   u8g2.drawStr(104, 44, "m3");
 
   drawArrows();
-  return 0;
 }
 
 void pagePressure() {
@@ -600,7 +597,6 @@ void pagePressure() {
   u8g2.drawStr(104, 44, "Hg");
 
   drawArrows();
-  return 0;
 }
 
 void pageInfo() {
@@ -610,19 +606,21 @@ void pageInfo() {
 
   u8g2.drawStr(0, 24, "V tot (m)");   // total hours of vent. runned
   u8g2.setCursor(104, 24);
-  //u8g2.print(Vent_Work_Total);
-  //sprintf(v_tot, "%dh", Vent_Work_Total);
-  time_and_units(temp_char, Vent_Work_Total*60);  // need Vent_Work_Total minutes to seconds conversions
+  time_and_units(temp_char, Vent_Work_Total*60);  // need convert Vent_Work_Total from minutes to seconds
   u8g2.print(temp_char);
 
   u8g2.drawStr(0, 40, "Next chk"); // next check, seconds
   u8g2.setCursor(104, 40);
-  time_and_units(temp_char, (Vent_Check_Every-(millis()-Timer_Check_Vent))/1000);
-  u8g2.print(temp_char);
 
-  //u8g2.drawStr(0, 56, "Last chk");
-  //u8g2.setCursor(104, 56);
-  //u8g2.print((millis()-Timer_Check_Vent)/1000);
+  unsigned long time_from_last_check_vent = millis()-Timer_Check_Vent;
+
+  if (time_from_last_check_vent <= Vent_Check_Every) {
+    time_and_units(temp_char, (Vent_Check_Every-time_from_last_check_vent)/1000);
+  } else {
+    strcpy(temp_char, " 0s");
+  }
+
+  u8g2.print(temp_char);
 }
 
 void pageInfo2() {
@@ -631,7 +629,7 @@ void pageInfo2() {
   u8g2.setFont(u8g2_font_pxplusibmvga8_mr);
 
   u8g2.drawStr(72, 24, "Out Bas");  // Outside, Basement
-  u8g2.drawStr(0, 40, "Last chk"); // last checked, seconds
+  u8g2.drawStr(0, 40, "Last rcv");  // last checked, seconds
 
   u8g2.setCursor(72, 40);
   time_and_units(temp_char, (millis()-Timer_Node_Outside)/1000);
@@ -653,7 +651,7 @@ unsigned int right_x(char* message, int margin_right=0) {
   return DISPLAY_WIDTH-margin_right-u8g2.getStrWidth(message);
 }
 
-void blink(char icon[3]) {
+void blink(char* icon) {
   /*
    * Blink icons.
    */

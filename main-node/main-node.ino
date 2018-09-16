@@ -18,7 +18,7 @@
 #define Node_Request 0.5 *60*1000000  // minutes, how often request data from a node (PJON microseconds)
 #define Node_Timeout 1 *60*1000UL     // minutes, time after which node considered unreachable (Arduino milliseconds)
 
-#define  Vent_Check_Every 1 *60*1000UL         // minutes, how often calculate if we need vent.
+#define Vent_Check_Every 1 *60*1000UL         // minutes, how often calculate if we need vent.
 #define Vent_Running_Max_Time 8 *60*60*1000UL // hours, maximum time keeping the vent running.
 #define Vent_Rest_After_Run 5 *60*1000UL      // hours, maximum time keeping the vent running.
 
@@ -40,6 +40,8 @@ bool Fan_On = false;                // fan is working
 bool Node_Outside_Online = false;   // node data up to date
 bool Node_Basement_Online = false;  // node data up to date
 uint16_t Vent_Work_Total;           // total work time of ventilator
+int Outside_Tx_Errors  = 0;          // Transmissions to Outside module errors count
+int Basement_Tx_Errors = 0;         // Transmissions to Basement module errors count
 byte Receiving_From_Node;           // last data received from this node ID
 
 /*
@@ -211,6 +213,16 @@ void error_handler(uint8_t code, uint16_t data, void *custom_pointer) {
     Serial.print(F("Cont. too long: "));
     Serial.println(data);
   }
+
+  switch ((bus.packets[data].content[0])) {
+      case 10:
+        Outside_Tx_Errors++;
+        break;
+      case 20:
+        Basement_Tx_Errors++;
+        break;
+  }
+
 };
 
 void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info &packet_info) {
@@ -638,6 +650,13 @@ void pageInfo2() {
   u8g2.setCursor(104, 40);
   time_and_units(temp_char, (millis()-Timer_Node_Basement)/1000);
   u8g2.print(temp_char);
+
+  u8g2.drawStr(0, 56, "Tx err");  // last checked, seconds
+
+  u8g2.setCursor(72, 56);
+  u8g2.print(Outside_Tx_Errors);
+  u8g2.setCursor(104, 56);
+  u8g2.print(Basement_Tx_Errors);
 }
 
 unsigned int center_x(char* message, int margin_left=0, int margin_right=0) {

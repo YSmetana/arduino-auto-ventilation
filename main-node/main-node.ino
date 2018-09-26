@@ -29,11 +29,6 @@
 #define DISPLAY_SAVER 3 *60*1000UL  // minutes, display goes off after this time
 #define PROXIMITY_PIN 2             // digital pin of proximity sensor
 #define VENT_COUNTER_RESET false    // Reset ven. worked minutes in EEPROM. Do not forget to set to false.
-#define SECONDS_MINUTE    60UL
-#define SECONDS_HOUR      60UL*60
-#define SECONDS_DAY       60UL*60*24
-#define SECONDS_MONTH     60UL*60*24*30
-#define SECONDS_99MONTHS  60UL*60*24*99
 bool Display_On = true;             // display state
 bool Receiving = false;             // data receiving status
 bool Fan_On = false;                // fan is working
@@ -43,6 +38,18 @@ uint16_t Vent_Work_Total;           // total work time of ventilator
 int Outside_Tx_Errors  = 0;          // Transmissions to Outside module errors count
 int Basement_Tx_Errors = 0;         // Transmissions to Basement module errors count
 byte Receiving_From_Node;           // last data received from this node ID
+
+// macros from DateTime.h
+/* Useful Constants */
+#define SECS_PER_MIN  (60UL)
+#define SECS_PER_HOUR (3600UL)
+#define SECS_PER_DAY  (SECS_PER_HOUR * 24L)
+
+/* Useful Macros for getting elapsed time */
+#define numberOfSeconds(_time_) (_time_ % SECS_PER_MIN)
+#define numberOfMinutes(_time_) ((_time_ / SECS_PER_MIN) % SECS_PER_MIN)
+#define numberOfHours(_time_) (( _time_% SECS_PER_DAY) / SECS_PER_HOUR)
+#define elapsedDays(_time_) ( _time_ / SECS_PER_DAY)
 
 /*
  * Timers
@@ -481,7 +488,7 @@ void drawArrows() {
 
 }
 
-void time_and_units(char* output, unsigned long seconds) {
+void time_and_units(char* output, long sec) {
   /*
    * Converts time in seconds into seconds, minutes, hours, days with the short units name.
    * 99 month is maximum.
@@ -494,21 +501,23 @@ void time_and_units(char* output, unsigned long seconds) {
   char units;
   int new_value;
 
-  if(seconds >= SECONDS_99MONTHS) {         // months
-      new_value = seconds/SECONDS_MONTH;
-      units = 'M';
-  } else if(seconds >= SECONDS_DAY) {       // days
-      new_value = seconds/SECONDS_DAY;
-      units = 'd';
-  } else if(seconds >= SECONDS_HOUR) {      // hours
-      new_value = seconds/SECONDS_HOUR;
-      units = 'h';
-  } else if(seconds >= SECONDS_MINUTE) {    // minutes
-    new_value = seconds/SECONDS_MINUTE;
+  int days = elapsedDays(sec);
+  int hours = numberOfHours(sec);
+  int minutes = numberOfMinutes(sec);
+  int seconds = numberOfSeconds(sec);
+
+  if (days > 0) {
+    new_value = days;
+    units = 'd';
+  } else if (hours >0) {
+    new_value = hours;
+    units = 'h';
+  } else if (minutes > 0) {
+    new_value = minutes;
     units = 'm';
-  } else  {                                 // seconds
-      new_value = seconds;
-      units = 's';
+  } else if (seconds > 0) {
+    new_value = seconds;
+    units = 's';
   }
 
   if (new_value > 99) {

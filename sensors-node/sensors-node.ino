@@ -2,10 +2,10 @@
 #define DEBUG false
 #define Serial if(DEBUG)Serial  // https://forum.arduino.cc/index.php?topic=155268.0
 
-#define MY_PJON_ID 20 // PJON device ID
+#define MY_PJON_ID 10 // PJON device ID
 
 #define FAN_CONTROL_PIN 4
-#define HUM_CORR 0 // correction to humidity result
+#define HUM_CORR -1 // correction to humidity result
 
 #define NODE_TIMEOUT 2 *60*1000UL   // minutes, time after which data considered obsolete (Arduino milliseconds)
 unsigned long Timer_Fan_Control = millis();

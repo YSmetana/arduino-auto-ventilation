@@ -15,10 +15,10 @@
 #define BASEMENT_TEMP_MAX 30  // maximum temperature in basement
 #define HUM_DELTA 0.5         // difference between outside and basement abs. hum. to run vent.
 
-#define Node_Request 0.5 *60*1000000  // minutes, how often request data from a node (PJON microseconds)
-#define Node_Timeout 1 *60*1000UL     // minutes, time after which node considered unreachable (Arduino milliseconds)
+#define Node_Request 5 *60*1000000  // minutes, how often request data from a node (PJON microseconds)
+#define Node_Timeout 10 *60*1000UL     // minutes, time after which node considered unreachable (Arduino milliseconds)
 
-#define Vent_Check_Every 1 *60*1000UL         // minutes, how often calculate if we need vent.
+#define Vent_Check_Every 5 *60*1000UL         // minutes, how often calculate if we need vent.
 #define Vent_Running_Max_Time 8 *60*60*1000UL // hours, maximum time keeping the vent running.
 #define Vent_Rest_After_Run 5 *60*1000UL      // hours, maximum time keeping the vent running.
 
@@ -29,11 +29,11 @@
 #define DISPLAY_SAVER 3 *60*1000UL  // minutes, display goes off after this time
 #define PROXIMITY_PIN 2             // digital pin of proximity sensor
 #define VENT_COUNTER_RESET false    // Reset ven. worked minutes in EEPROM. Do not forget to set to false.
-#define SECONDS_MINUTE    60
-#define SECONDS_HOUR      60*60
-#define SECONDS_DAY       60*60*24
-#define SECONDS_MONTH     60*60*24*30
-#define SECONDS_99MONTHS  60*60*24*99
+#define SECONDS_MINUTE    60UL
+#define SECONDS_HOUR      60UL*60
+#define SECONDS_DAY       60UL*60*24
+#define SECONDS_MONTH     60UL*60*24*30
+#define SECONDS_99MONTHS  60UL*60*24*99
 bool Display_On = true;             // display state
 bool Receiving = false;             // data receiving status
 bool Fan_On = false;                // fan is working
@@ -190,8 +190,8 @@ void setup() {
   bus.send_repeatedly(NODE_ID_OUTSIDE,  (const char*)&Command, sizeof(CONTROL), Node_Request); // seconds * 1000000
   delay(TS_RESPONSE_TIME_OUT/1000 * 5); // to avoid inteference with response from the previous node
   bus.send_repeatedly(NODE_ID_BASEMENT, (const char*)&Command, sizeof(CONTROL), Node_Request); // seconds * 1000000
-  delay(TS_RESPONSE_TIME_OUT/1000 * 5);
 
+  delay(TS_RESPONSE_TIME_OUT/1000 * 10);
   Timer_Check_Vent = millis(); // to check if its is time to calc ventilation process
 };
 
@@ -631,7 +631,11 @@ void pageInfo() {
   } else {
     strcpy(temp_char, " 0s");
   }
+  u8g2.print(temp_char);
 
+  u8g2.drawStr(0, 56, "Uptime"); // next check, seconds
+  u8g2.setCursor(104, 56);
+  time_and_units(temp_char, millis()/1000);
   u8g2.print(temp_char);
 }
 
